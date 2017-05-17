@@ -1,0 +1,93 @@
+{
+  "builders": [
+    {
+      "boot_wait": "2s",
+      "guest_additions_mode": "disable",
+      "source_path": "{{user `ova_path`}}",
+      "output_directory": "{{user `output_directory`}}",
+      "shutdown_command": "echo '{{user `username`}}'|sudo -S shutdown -h now",
+      "ssh_port": 22,
+      "ssh_username": "{{user `username`}}",
+      "ssh_password": "{{user `password`}}",
+      "ssh_wait_timeout": "10000s",
+      "type": "virtualbox-ovf",	  
+      "vboxmanage": [
+        ["modifyvm", "{{.Name}}", "--audiocontroller", "hda"],
+        ["modifyvm", "{{.Name}}", "--boot1", "dvd"],
+        ["modifyvm", "{{.Name}}", "--boot2", "disk"],
+        ["modifyvm", "{{.Name}}", "--chipset", "ich9"],
+        ["modifyvm", "{{.Name}}", "--firmware", "efi"],
+        ["modifyvm", "{{.Name}}", "--hpet", "on"],
+        ["modifyvm", "{{.Name}}", "--keyboard", "usb"],
+        ["modifyvm", "{{.Name}}", "--memory", "2048"],
+        ["modifyvm", "{{.Name}}", "--mouse", "usbtablet"],
+        ["modifyvm", "{{.Name}}", "--vram", "128"]
+      ]
+    }
+  ],
+  "min_packer_version": "0.7.0",
+  "post-processors": [
+    {
+      "type": "vagrant",
+      "output": "{{user `vagrant_box_directory`}}/packer_{{.BuildName}}_{{.Provider}}.box"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell-local",
+      "command": "sleep {{user `provisioning_delay`}}"
+    },
+    {
+      "destination": "/private/tmp/set_kcpassword.py",
+      "source": "../scripts/support/set_kcpassword.py",
+      "type": "file"
+    },
+    {
+      "execute_command": "chmod +x {{ .Path }}; sudo {{ .Vars }} {{ .Path }}",
+      "scripts": [
+        "../scripts/vagrant.sh",
+        "../scripts/vmware.sh",
+        "../scripts/parallels.sh",
+        "../scripts/xcode-cli-tools.sh",
+        "../scripts/chef-omnibus.sh",
+        "../scripts/puppet.sh",
+        "../scripts/add-network-interface-detection.sh",
+        "../scripts/autologin.sh",
+        "../scripts/system-update.sh",
+        "../scripts/shrink.sh"
+      ],
+      "environment_vars": [
+        "AUTOLOGIN={{user `autologin`}}",
+        "CHEF_VERSION={{user `chef_version`}}",
+        "FACTER_VERSION={{user `facter_version`}}",
+        "HIERA_VERSION={{user `hiera_version`}}",
+        "INSTALL_VAGRANT_KEYS={{user `install_vagrant_keys`}}",
+        "NOCM={{user `nocm`}}",
+        "INSTALL_XCODE_CLI_TOOLS={{user `install_xcode_cli_tools`}}",
+        "PASSWORD={{user `password`}}",
+        "PUPPET_VERSION={{user `puppet_version`}}",
+        "PUPPET_AGENT_VERSION={{user `puppet_agent_version`}}",
+        "UPDATE_SYSTEM={{user `update_system`}}",
+        "USERNAME={{user `username`}}"
+      ],
+      "type": "shell"
+    }
+  ],
+  "variables": {
+    "autologin": "false",
+    "chef_version": "none",
+    "facter_version": "none",
+    "hiera_version": "none",
+    "install_vagrant_keys": "true",
+    "install_xcode_cli_tools": "true",
+    "ova_path": "macOS Sierra.ova",
+    "output_directory": "{{env `PACKER_OUTPUT_DIR`}}",
+    "password": "vagrant",
+    "provisioning_delay": "0",
+    "puppet_version": "none",
+    "puppet_agent_version": "none",
+    "update_system": "true",
+    "username": "vagrant",
+    "vagrant_box_directory": "{{env `PACKER_VAGRANT_BOX_DIR`}}"
+  }
+}
